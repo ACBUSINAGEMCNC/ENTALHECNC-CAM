@@ -1,0 +1,2138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>ENTALHY CNC - Gerador de Código G</title>
+    <style>
+        :root {
+            --primary: #cc0000;
+            --secondary: #222;
+            --light: #f8f9fa;
+            --dark: #121212;
+            --success: #28a745;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--light);
+            color: var(--secondary);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: var(--dark);
+            color: white;
+            padding: 15px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+        .logo img {
+            height: 60px;
+            margin-right: 15px;
+        }
+
+        .logo h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            font-weight: 600;
+        }
+
+        .main-content {
+            display: flex;
+            margin-top: 30px;
+            gap: 20px;
+        }
+
+        .input-panel {
+            flex: 1;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .output-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .code-output {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 300px;
+            overflow: auto;
+            font-family: 'Courier New', monospace;
+            margin-bottom: 20px;
+        }
+
+        .visualization {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-grow: 1;
+            position: relative;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 400px;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            position: relative;
+            overflow: hidden;
+            background-color: #f9f9f9;
+        }
+
+        .angle-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            border: 2px solid #333;
+            background-color: rgba(255, 255, 255, 0.8);
+            overflow: hidden;
+        }
+
+        .angle-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(204, 0, 0, 0.2);
+            transform-origin: center;
+            clip-path: polygon(50% 50%, 50% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 50% 0%);
+            transform: rotate(0deg);
+        }
+
+        .angle-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 10px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .angle-needle {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 45px;
+            height: 2px;
+            background-color: var(--primary);
+            transform-origin: left center;
+        }
+
+        .angle-value {
+            position: absolute;
+            bottom: -25px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .simulation-controls {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+        }
+
+        .simulation-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            color: var(--primary);
+            margin-top: 0;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+            position: relative;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            box-sizing: border-box;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 20px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #a00000;
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #444;
+        }
+
+        footer {
+            margin-top: 40px;
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            padding: 20px 0;
+            border-top: 1px solid #eee;
+        }
+
+        .machine-info {
+            background-color: #f8f9fa;
+            border-left: 4px solid var(--primary);
+            padding: 15px;
+            margin-top: 20px;
+            font-size: 0.9rem;
+        }
+
+        .loading {
+            display: none;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .loading-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 10px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Estilo para o controle de velocidade */
+        .speed-control {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .speed-control label {
+            margin-right: 10px;
+            margin-bottom: 0;
+            white-space: nowrap;
+        }
+
+        .speed-control input {
+            flex-grow: 1;
+        }
+
+        #speedValue {
+            display: inline-block;
+            margin-left: 10px;
+            font-weight: bold;
+            color: var(--primary);
+            min-width: 30px;
+        }
+
+        /* Controles de zoom */
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            gap: 10px;
+        }
+
+        .zoom-button {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .zoom-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .zoom-level {
+            font-weight: bold;
+            min-width: 40px;
+            text-align: center;
+        }
+
+        .zoom-slider {
+            flex-grow: 1;
+        }
+
+        /* Estilos para mensagens de feedback */
+        .message {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .message.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .message.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .message.info {
+            background-color: #e2e3e4;
+            color: #383d41;
+            border: 1px solid #d3d6da;
+        }
+
+        /* Estilo para a descrição do campo */
+        .field-description {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 3px;
+        }
+
+        /* Estilos para o ícone de ajuda */
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background-color: #6c757d;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .help-icon:hover {
+            background-color: var(--primary);
+        }
+
+        /* Tooltip para o ícone de ajuda */
+        .tooltip {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 250px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 6px;
+            padding: 10px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-weight: normal;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        /* Estilos para o painel de ajuda */
+        .help-panel {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .help-content {
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .help-content h3 {
+            color: var(--primary);
+            margin-top: 0;
+        }
+
+        .help-content p {
+            margin-bottom: 15px;
+        }
+
+        .help-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: white;
+        }
+
+        /* Estilos para o modo escuro */
+        .dark-mode {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--dark);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            z-index: 100;
+        }
+
+        .dark-mode-icon {
+            font-size: 24px;
+        }
+
+        body.dark {
+            background-color: #1a1a1a;
+            color: #f0f0f0;
+        }
+
+        body.dark .input-panel,
+        body.dark .code-output,
+        body.dark .visualization {
+            background-color: #2a2a2a;
+            color: #f0f0f0;
+            border: 1px solid #444;
+        }
+
+        body.dark input[type="number"] {
+            background-color: #333;
+            color: #f0f0f0;
+            border-color: #555;
+        }
+
+        body.dark .machine-info {
+            background-color: #333;
+        }
+
+        body.dark h2 {
+            border-bottom-color: #444;
+        }
+
+        body.dark .field-description {
+            color: #aaa;
+        }
+
+        /* Estilos para os campos de diâmetro */
+        .diameter-fields {
+            display: flex;
+            gap: 10px;
+        }
+
+        .diameter-field {
+            flex: 1;
+        }
+
+        /* Estilos para o recuo */
+        .recuo-options {
+            margin-top: 10px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .recuo-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        /* Estilos para o indicador de posição atual */
+        .position-indicator {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+        }
+    
+/* Transições suaves */
+* {
+    transition: all 0.2s ease-in-out;
+}
+
+/* Ícones nos botões */
+.btn .icon {
+    margin-right: 6px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Estilo das abas colapsáveis */
+.collapsible-section {
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    background-color: #fff;
+}
+
+.collapsible-header {
+    background-color: var(--light);
+    padding: 10px 15px;
+    font-weight: bold;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.collapsible-header:hover {
+    background-color: #f0f0f0;
+}
+
+.collapsible-body {
+    display: none;
+    padding: 15px;
+}
+
+body.dark .collapsible-header {
+    background-color: #2a2a2a;
+    color: #f0f0f0;
+}
+
+body.dark .collapsible-body {
+    background-color: #1a1a1a;
+}
+
+.view-toggle {
+    margin-bottom: 10px;
+    text-align: right;
+}
+
+#threeDContainer {
+    background-color: #f0f0f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+#threeDContainer canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Adicionar regras para garantir que os indicadores de posição e ângulo sejam sempre visíveis */
+.position-indicator, .angle-indicator {
+    z-index: 9999 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    display: block !important;
+    pointer-events: none;
+}
+
+/* Destacar mais o fundo para melhor visibilidade */
+.position-indicator {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid #333 !important;
+    font-weight: bold !important;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.3) !important;
+}
+
+.angle-indicator {
+    border: 2px solid #444 !important;
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .input-panel,
+    .output-panel {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .btn {
+        width: 100%;
+    }
+    
+    .canvas-container {
+        height: 300px;
+    }
+}
+    </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="60" height="60" viewBox="0 0 100 100">
+                        <circle cx="50" cy="50" r="40" fill="none" stroke="#cc0000" stroke-width="8" />
+                        <path d="M50,10 L50,30 M90,50 L70,50 M50,90 L50,70 M10,50 L30,50" stroke="#cc0000" stroke-width="8" stroke-linecap="round" />
+                        <path d="M30,30 L40,40 M70,30 L60,40 M70,70 L60,60 M30,70 L40,60" stroke="#cc0000" stroke-width="6" stroke-linecap="round" />
+                        <path d="M38,38 L62,62 M38,62 L62,38" stroke="#cc0000" stroke-width="4" stroke-linecap="round" />
+                    </svg>
+                    <h1>ENTALHY CNC</h1>
+                </div>
+                <div>
+                    <strong>Gerador de Código G para Usinagem de Entalhes</strong>
+                    <button id="btnHelp" class="btn btn-secondary" style="margin-left: 15px;">Ajuda</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="main-content">
+            <div class="input-panel">
+                <h2>Parâmetros de Usinagem</h2>
+                
+    <div class="collapsible-section">
+        <div class="collapsible-header">Usinagem<span>+</span></div>
+        <div class="collapsible-body" style="display: block;"><div class="form-group">
+                    <label for="pontoInicioZ">
+                        Ponto Início Z (mm)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Posição inicial da ferramenta no eixo Z antes de iniciar o corte. Valores positivos indicam distância acima da peça.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="pontoInicioZ" value="5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="profundidadeFinal">
+                        Profundidade Final Z- (mm)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Profundidade final do corte no eixo Z. Valores negativos indicam penetração na peça.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="profundidadeFinal" value="-5" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label for="numEntalhes">
+                        Número de Entalhes
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Quantidade de entalhes a serem usinados ao redor da peça. Os entalhes serão distribuídos uniformemente.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="numEntalhes" value="4" min="1" max="100">
+                </div>
+                <div class="form-group">
+                    <label for="avanco">
+                        Avanço F (mm/min)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text"></div>
+    </div>
+    
+    <div class="collapsible-section">
+        <div class="collapsible-header">Geometria da Peça<span>+</span></div>
+        <div class="collapsible-body" style="display: block;">Velocidade de avanço da ferramenta durante o corte. Valores mais baixos resultam em acabamento melhor, mas aumentam o tempo de usinagem.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="avanco" value="100" min="1">
+                </div>
+                <div class="form-group">
+                    <label for="apY">
+                        Material por Passe AP Y (mm)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Quantidade de material removido em cada passe no eixo Y. Valores menores resultam em mais passes e melhor acabamento.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="apY" value="1" step="0.1" min="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        Diâmetros da Peça
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Define o diâmetro inicial e final da peça. A diferença entre eles dividida por 2 determina a profundidade do corte no raio.</span>
+                        </span>
+                    </label>
+                    <div class="diameter-fields">
+                        <div class="diameter-field">
+                            <label for="diametroInicial">Diâmetro Inicial (mm)</label>
+                            <input type="number" id="diametroInicial" value="30" step="0.1" min="1">
+                        </div>
+                        <div class="diameter-field">
+                            <label for="diametroFinal">Diâmetro Final (mm)</label>
+                            <input type="number" id="diametroFinal" value="40" step="0.1" min="1">
+                        </div>
+                    </div>
+              </div>
+    </div>
+    
+    <div class="collapsible-section">
+        <div class="collapsible-header">Ferramenta<span>+</span></div>
+        <div class="collapsible-body" style="display: block;">      <div class="field-description">
+                        Raio inicial: <span id="raioInicial">15.0</span> mm | 
+                        Raio final: <span id="raioFinal">20.0</span> mm | 
+                        Profundidade no raio: <span id="profundidadeCalculada">5.0</span> mm
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="diametroFerramenta">
+                        Diâmetro da Ferramenta (mm)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Diâmetro da ferramenta de corte. Determina o deslocamento necessário para criar a abertura da chaveta.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="diametroFerramenta" value="8" step="0.1" min="0.1">
+                </div>
+                
+                <div class="form-group">
+                    <label for="aberturaChaveta">
+                        Abertura da Chaveta X (mm)
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Largura total da chaveta em milímetros. A ferramenta se deslocará automaticamente para criar esta abertura.</span>
+                        </span>
+                    </label>
+                    <input type="number" id="aberturaChaveta" value="10" step="0.1" min="0">
+                    <div class="field-description" id="deslocamentoDescription">
+                        Deslocamento necessário: ±1.0mm (2 passes)
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        Lado do Recuo:
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">Define a direção do recuo após o corte. Positivo recua no sentido Y+, negativo no sentido Y-.</span>
+                        </span>
+                    </label>
+                    <div class="radio-group">
+                        <div class="radio-option">
+                            <input type="radio" id="ladoPositivo" name="ladoCorte" value="positivo" checked>
+                            <label for="ladoPositivo">Positivo</label>
+                        </div>
+                        <div class="radio-option">
+                            <input type="radio" id="ladoNegativo" name="ladoCorte" value="negativo">
+                            <label for="ladoNegativo">Negativo</label>
+                        </div>
+                    </div>
+                    <div class="field-description">Determina para qual lado a ferramenta recua após cada corte</div>
+                </div>
+                
+                </div>
+    </div>
+    <div class="btn-group">
+                    <button id="btnGerar" class="btn btn-primary"><span class="icon">⚙️</span>Gerar Código G</button>
+                    <button id="btnSalvar" class="btn btn-secondary" disabled><span class="icon">💾</span>Salvar Código</button>
+                </div>
+
+                <div class="machine-info">
+                    <strong>ENTALHY CNC</strong> - Máquina CNC de alta robustez para fabricação de entalhes e engrenagens.
+                    <br>
+                    <small>Suporte a chavetas internas/externas, engrenagens e geometrias especiais.</small>
+                </div>
+            </div>
+
+            <div class="output-panel">
+                <div class="code-output" id="codigoGOutput">
+                    <em>O código G será gerado aqui...</em>
+                </div>
+                
+                <div class="visualization">
+                    <h2>Visualização da Simulação</h2>
+                    <div class="view-toggle">
+                        <button class="btn btn-secondary" id="toggle2D3D">Alternar 2D/3D</button>
+                    </div>
+                    <div class="canvas-container" id="canvasContainer">
+                        <canvas id="visualizationCanvas" width="500" height="350"></canvas>
+                        <div id="threeDContainer" style="display: none; width: 100%; height: 350px;"></div>
+                        <div class="angle-indicator" id="angleIndicator">
+                            <div class="angle-fill" id="angleFill"></div>
+                            <div class="angle-center"></div>
+                            <div class="angle-needle" id="angleNeedle"></div>
+                            <div class="angle-value" id="angleValue">0°</div>
+                        </div>
+                        <div class="position-indicator" id="positionIndicator">
+                            X: 0.00 | Y: 0.00 | Z: 0.00
+                        </div>
+                    </div>
+                    <div class="loading" id="loadingIndicator">
+                        <div class="loading-spinner"></div>
+                        <p>Processando simulação...</p>
+                    </div>
+                    
+                    <div class="simulation-controls">
+                        <div class="simulation-buttons">
+                            <button id="btnSimular" class="btn btn-primary" disabled><span class="icon">▶️</span>Iniciar Simulação</button>
+                            <button id="btnPausar" class="btn btn-secondary" disabled>Pausar</button>
+                            <button id="btnReiniciar" class="btn btn-secondary" disabled>Reiniciar</button>
+                        </div>
+                        
+                        <div class="speed-control">
+                            <label for="simulationSpeed">Velocidade:</label>
+                            <input type="range" id="simulationSpeed" min="0.1" max="5" step="0.1" value="1">
+                            <span id="speedValue">1x</span>
+                        </div>
+
+                        <div class="zoom-controls">
+                            <button class="zoom-button" id="zoomOut">-</button>
+                            <input type="range" id="zoomLevel" class="zoom-slider" min="0.5" max="4" step="0.1" value="1">
+                            <button class="zoom-button" id="zoomIn">+</button>
+                            <span id="zoomValue">100%</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="messageContainer" class="message info" style="display: none;"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="help-panel" id="helpPanel">
+        <button class="help-close" id="helpClose">&times;</button>
+        <div class="help-content">
+            <h3>Ajuda - ENTALHY CNC</h3>
+            
+            <h4>O que é o ENTALHY CNC?</h4>
+            <p>O ENTALHY CNC é um gerador de código G especializado para usinagem de entalhes e chavetas em peças cilíndricas. O aplicativo permite configurar todos os parâmetros necessários e gera automaticamente o código G para máquinas CNC.</p>
+            
+            <h4>Como usar:</h4>
+            <ol>
+                <li><strong>Configure os parâmetros</strong> - Ajuste todos os valores de acordo com sua necessidade de usinagem.</li>
+                <li><strong>Gere o código</strong> - Clique em "Gerar Código G" para criar o programa CNC.</li>
+                <li><strong>Simule</strong> - Visualize a trajetória da ferramenta antes de enviar para a máquina.</li>
+                <li><strong>Salve o código</strong> - Exporte o código G para um arquivo .nc que pode ser carregado na sua máquina CNC.</li>
+            </ol>
+            
+            <h4>Parâmetros principais:</h4>
+            <ul>
+                <li><strong>Ponto Início Z</strong> - Posição inicial da ferramenta no eixo Z.</li>
+                <li><strong>Profundidade Final Z-</strong> - Profundidade máxima de corte no eixo Z.</li>
+                <li><strong>Número de Entalhes</strong> - Quantidade de entalhes distribuídos uniformemente ao redor da peça.</li>
+                <li><strong>Avanço F</strong> - Velocidade de avanço da ferramenta durante o corte.</li>
+                <li><strong>Material por Passe AP Y</strong> - Quantidade de material removido em cada passe no eixo Y.</li>
+                <li><strong>Diâmetros da Peça</strong> - Diâmetro inicial e final da peça, que determinam a profundidade do corte.</li>
+                <li><strong>Diâmetro da Ferramenta</strong> - Tamanho da ferramenta de corte utilizada.</li>
+                <li><strong>Abertura da Chaveta X</strong> - Largura total da chaveta em milímetros.</li>
+                <li><strong>Lado do Recuo</strong> - Define para qual lado a ferramenta recua após cada corte.</li>
+            </ul>
+            
+            <h4>Dicas:</h4>
+            <ul>
+                <li>Use valores menores de "Material por Passe" para melhor acabamento.</li>
+                <li>Ajuste a "Abertura da Chaveta X" de acordo com a ferramenta utilizada.</li>
+                <li>Sempre simule o código antes de enviá-lo para a máquina CNC.</li>
+                <li>Para peças de maior diâmetro, considere aumentar o número de passes.</li>
+            </ul>
+        </div>
+    </div>
+
+    <button class="dark-mode" id="darkModeToggle">
+        <span class="dark-mode-icon">☀️</span>
+    </button>
+
+    <footer>
+        <div class="container">
+            &copy; 2025 ENTALHY CNC - Aplicativo Gerador de Código G
+        </div>
+    </footer>
+
+    <script>
+        // Variáveis globais
+        let codigoGGerado = [];
+        let canvas = document.getElementById('visualizationCanvas');
+        let ctx = canvas.getContext('2d');
+        let simulationActive = false;
+        let simulationPaused = false;
+        let currentFrame = 0;
+        let simulationFrames = [];
+        let animationId = null;
+        let simulationSpeed = 1; // 1x por padrão
+
+        // Variáveis de zoom
+        let zoomLevel = 1;
+        let panOffsetX = 0;
+        let panOffsetY = 0;
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // Variáveis globais para Three.js
+        let scene, camera, renderer, cylinder, tool, controls, isThreeDMode = false;
+
+        // Ajusta o tamanho do canvas para se adaptar ao contêiner
+        function resizeCanvas() {
+            const container = document.getElementById('canvasContainer');
+            canvas.width = container.clientWidth;
+            canvas.height = container.clientHeight;
+
+            // Redesenhar se houver uma simulação ativa
+            if (simulationActive && simulationFrames.length > 0) {
+                drawFrame(currentFrame);
+            } else {
+                drawEmptyCanvas();
+            }
+        }
+
+        // Função para atualizar o indicador de ângulo
+        function updateAngleIndicator(angle) {
+            const needle = document.getElementById('angleNeedle');
+            const valueDisplay = document.getElementById('angleValue');
+            const angleFill = document.getElementById('angleFill');
+            const indicator = document.getElementById('angleIndicator');
+            
+            if (indicator) {
+                // Forçar visibilidade
+                indicator.style.display = 'block';
+                indicator.style.visibility = 'visible';
+                indicator.style.opacity = '1';
+                indicator.style.zIndex = '9999';
+                
+                // Destacar brevemente para chamar atenção
+                indicator.style.borderColor = '#cc0000';
+                setTimeout(() => {
+                    indicator.style.borderColor = '#444';
+                }, 200);
+            }
+            
+            if (needle && valueDisplay && angleFill) {
+                // Atualizar a rotação da agulha
+                needle.style.transform = `rotate(${angle}deg)`;
+                
+                // Atualizar o valor do ângulo
+                valueDisplay.textContent = `${angle.toFixed(1)}°`;
+                
+                // Atualizar o preenchimento do ângulo
+                const clipPath = calculateClipPath(angle);
+                angleFill.style.clipPath = clipPath;
+            }
+        }
+
+        // Função para calcular o clip-path para o preenchimento do ângulo
+        function calculateClipPath(angle) {
+            // Normalizar o ângulo para 0-360
+            const normalizedAngle = angle % 360;
+            if (normalizedAngle === 0) {
+                return 'polygon(50% 50%, 50% 0%, 50% 0%)';
+            }
+            
+            // Calcular pontos para criar o setor circular
+            const points = [];
+            points.push('50% 50%'); // Centro
+            points.push('50% 0%');  // Ponto inicial (topo)
+            
+            // Adicionar pontos intermediários para criar uma curva suave
+            const steps = Math.max(2, Math.floor(normalizedAngle / 10));
+            for (let i = 1; i <= steps; i++) {
+                const stepAngle = (normalizedAngle * i / steps) * Math.PI / 180;
+                const x = 50 + 50 * Math.sin(stepAngle);
+                const y = 50 - 50 * Math.cos(stepAngle);
+                points.push(`${x}% ${y}%`);
+            }
+            
+            return `polygon(${points.join(', ')})`;
+        }
+
+        // Função para atualizar o indicador de posição
+        function updatePositionIndicator(x, y, z) {
+            const indicator = document.getElementById('positionIndicator');
+            if (indicator) {
+                // Forçar visibilidade
+                indicator.style.display = 'block';
+                indicator.style.visibility = 'visible';
+                indicator.style.opacity = '1';
+                indicator.style.zIndex = '9999';
+                
+                // Atualizar o texto
+                indicator.textContent = `X: ${x.toFixed(2)} | Y: ${y.toFixed(2)} | Z: ${z.toFixed(2)}`;
+                
+                // Destacar brevemente para chamar atenção (efeito visual)
+                indicator.style.backgroundColor = 'rgba(255, 255, 0, 0.7)';
+                setTimeout(() => {
+                    indicator.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+                }, 200);
+            }
+        }
+
+        // Configura o canvas vazio com eixos
+        function drawEmptyCanvas() {
+            // Limpar o canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Configurações para desenho com zoom
+            const padding = 40;
+            const originX = (padding * 2 + panOffsetX) * zoomLevel;
+            const originY = (canvas.height / 2 + panOffsetY) * zoomLevel;
+            const scaleZ = 5 * zoomLevel; // Escala para Z
+            const scaleY = 5 * zoomLevel; // Escala para Y
+
+            // Eixo Z (horizontal)
+            ctx.beginPath();
+            ctx.moveTo(padding, originY);
+            ctx.lineTo(canvas.width - padding, originY);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Eixo Y (vertical)
+            ctx.beginPath();
+            ctx.moveTo(originX, padding);
+            ctx.lineTo(originX, canvas.height - padding);
+            ctx.stroke();
+
+            // Legendas dos eixos
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#333';
+            ctx.fillText('Z', canvas.width - padding + 10, originY + 5);
+            ctx.fillText('Y', originX - 5, padding - 10);
+
+            // Desenhar marcações no eixo Z (de -200mm a 200mm)
+            ctx.textAlign = 'center';
+            for (let i = -40; i <= 40; i += 5) {
+                let posX = originX + i * scaleZ;
+                ctx.beginPath();
+                ctx.moveTo(posX, originY - 5);
+                ctx.lineTo(posX, originY + 5);
+                ctx.stroke();
+                if (i !== 0) { // Evitar desenhar o zero duas vezes
+                    ctx.fillText(i, posX, originY + 20);
+                }
+            }
+
+            // Marcações eixo Y (de -200mm a 200mm)
+            for (let i = -40; i <= 40; i += 5) {
+                let posY = originY - i * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(originX - 5, posY);
+                ctx.lineTo(originX + 5, posY);
+                ctx.stroke();
+                if (i !== 0) { // Evitar desenhar o zero duas vezes
+                    ctx.textAlign = 'right';
+                    ctx.fillText(i, originX - 10, posY + 4);
+                }
+            }
+
+            // Indicação de que não há simulação
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('Gere o Código G e clique em Iniciar Simulação para visualizar',
+                canvas.width / 2, canvas.height / 2 - 50);
+                
+            // Inicializar o indicador de ângulo
+            updateAngleIndicator(0);
+            updatePositionIndicator(0, 0, 0);
+        }
+
+        // Função para desenhar um quadro específico da simulação
+        function drawFrame(frameIndex) {
+            if (!simulationFrames || frameIndex >= simulationFrames.length) return;
+
+            const frame = simulationFrames[frameIndex];
+
+            // SEMPRE atualizar coordenadas primeiro, independente de qualquer coisa
+            updatePositionIndicator(frame.x || 0, frame.y, frame.z);
+            updateAngleIndicator(frame.a);
+
+            // Limpar o canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Configurações para desenho com zoom
+            const padding = 40;
+            const originX = (padding * 2 + panOffsetX) * zoomLevel;
+            const originY = (canvas.height / 2 + panOffsetY) * zoomLevel;
+            const scaleZ = 5 * zoomLevel; // Escala para Z
+            const scaleY = 5 * zoomLevel; // Escala para Y
+
+            // Eixo Z (horizontal)
+            ctx.beginPath();
+            ctx.moveTo(padding, originY);
+            ctx.lineTo(canvas.width - padding, originY);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Eixo Y (vertical)
+            ctx.beginPath();
+            ctx.moveTo(originX, padding);
+            ctx.lineTo(originX, canvas.height - padding);
+            ctx.stroke();
+
+            // Legendas dos eixos
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#333';
+            ctx.fillText('Z', canvas.width - padding + 10, originY + 5);
+            ctx.fillText('Y', originX - 5, padding - 10);
+
+            // Desenhar marcações no eixo Z (de -200mm a 200mm)
+            ctx.textAlign = 'center';
+            for (let i = -40; i <= 40; i += 5) {
+                let posX = originX + i * scaleZ;
+                ctx.beginPath();
+                ctx.moveTo(posX, originY - 5);
+                ctx.lineTo(posX, originY + 5);
+                ctx.stroke();
+                if (i !== 0) { // Evitar desenhar o zero duas vezes
+                    ctx.fillText(i, posX, originY + 20);
+                }
+            }
+
+            // Marcações eixo Y (de -200mm a 200mm)
+            for (let i = -40; i <= 40; i += 5) {
+                let posY = originY - i * scaleY;
+                ctx.beginPath();
+                ctx.moveTo(originX - 5, posY);
+                ctx.lineTo(originX + 5, posY);
+                ctx.stroke();
+                if (i !== 0) { // Evitar desenhar o zero duas vezes
+                    ctx.textAlign = 'right';
+                    ctx.fillText(i, originX - 10, posY + 4);
+                }
+            }
+
+            // Desenhar a trajetória até o frame atual
+            ctx.beginPath();
+            ctx.moveTo(originX, originY);
+
+            for (let i = 0; i <= frameIndex; i++) {
+                const point = simulationFrames[i];
+                const x = originX + point.z * scaleZ;
+                const y = originY - point.y * scaleY;
+
+                // Se for movimento G1 (corte), usar vermelho, caso contrário, azul
+                ctx.strokeStyle = point.cmd === 'G1' ? '#cc0000' : '#0066cc';
+                ctx.lineWidth = point.cmd === 'G1' ? 2 : 1;
+
+                ctx.lineTo(x, y);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+            }
+
+            // Desenhar a posição atual da ferramenta
+            const currentX = originX + frame.z * scaleZ;
+            const currentY = originY - frame.y * scaleY;
+            
+            // Desenhar a ferramenta
+            const toolSize = 8; // Tamanho da ferramenta
+            ctx.beginPath();
+            ctx.arc(currentX, currentY, toolSize, 0, Math.PI * 2);
+            ctx.fillStyle = frame.cmd === 'G1' ? 'rgba(204, 0, 0, 0.7)' : 'rgba(0, 102, 204, 0.7)';
+            ctx.fill();
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+
+            // Garantir que os indicadores permaneçam visíveis e atualizados
+            document.getElementById('positionIndicator').style.display = 'block';
+            document.getElementById('angleIndicator').style.display = 'block';
+        }
+
+        // Função para aplicar zoom
+        function applyZoom(newZoomLevel) {
+            zoomLevel = newZoomLevel;
+            document.getElementById('zoomValue').textContent = Math.round(zoomLevel * 100) + '%';
+            
+            // Redesenhar o canvas com o novo nível de zoom
+            if (simulationActive && simulationFrames.length > 0) {
+                drawFrame(currentFrame);
+            } else {
+                drawEmptyCanvas();
+            }
+        }
+
+        // Função para permitir arrastar o canvas (pan)
+        function setupCanvasPanning() {
+            const canvasContainer = document.getElementById('canvasContainer');
+            
+            // Eventos de mouse existentes
+            canvasContainer.addEventListener('mousedown', handleStart);
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleEnd);
+            
+            // Adicionar eventos touch
+            canvasContainer.addEventListener('touchstart', handleStart);
+            document.addEventListener('touchmove', handleMove);
+            document.addEventListener('touchend', handleEnd);
+            
+            function handleStart(e) {
+                if (e.target === canvas) {
+                    isDragging = true;
+                    lastMouseX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                    lastMouseY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    canvasContainer.style.cursor = 'grabbing';
+                }
+                
+                // Prevenir zoom do navegador em dispositivos móveis
+                if (e.type.includes('touch')) {
+                    e.preventDefault();
+                }
+            }
+            
+            function handleMove(e) {
+                if (!isDragging) return;
+                
+                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                
+                const deltaX = clientX - lastMouseX;
+                const deltaY = clientY - lastMouseY;
+                
+                panOffsetX += deltaX;
+                panOffsetY += deltaY;
+                
+                lastMouseX = clientX;
+                lastMouseY = clientY;
+                
+                if (simulationActive && simulationFrames.length > 0) {
+                    drawFrame(currentFrame);
+                } else {
+                    drawEmptyCanvas();
+                }
+                
+                // Prevenir comportamento padrão em dispositivos móveis
+                if (e.type.includes('touch')) {
+                    e.preventDefault();
+                }
+            }
+            
+            function handleEnd() {
+                if (isDragging) {
+                    isDragging = false;
+                    canvasContainer.style.cursor = 'default';
+                }
+            }
+        }
+
+        // Função para animar a simulação
+        function animateSimulation() {
+            if (!simulationFrames || simulationFrames.length === 0) {
+                showMessage("Nenhum código gerado para simular!", 'error');
+                return;
+            }
+
+            // SEMPRE verificar visibilidade dos indicadores a cada frame
+            document.getElementById('positionIndicator').style.display = 'block';
+            document.getElementById('angleIndicator').style.display = 'block';
+
+            if (!simulationActive || simulationPaused) {
+                // Garantir que as coordenadas permaneçam visíveis mesmo quando pausado
+                if (currentFrame < simulationFrames.length) {
+                    const frame = simulationFrames[currentFrame];
+                    updatePositionIndicator(frame.x || 0, frame.y, frame.z);
+                    updateAngleIndicator(frame.a);
+                }
+                return;
+            }
+
+            if (currentFrame >= simulationFrames.length) {
+                simulationActive = false;
+                document.getElementById('btnSimular').textContent = 'Iniciar Simulação';
+                document.getElementById('btnPausar').disabled = true;
+                showMessage('Simulação concluída.', 'success');
+                
+                // Garantir que as coordenadas do último frame permaneçam visíveis
+                const lastFrame = simulationFrames[simulationFrames.length - 1];
+                updatePositionIndicator(lastFrame.x || 0, lastFrame.y, lastFrame.z);
+                updateAngleIndicator(lastFrame.a);
+                
+                currentFrame = 0;
+                return;
+            }
+
+            // Garantir que o frame atual seja válido
+            if (currentFrame < 0) currentFrame = 0;
+
+            // Desenhar o frame atual
+            const frame = simulationFrames[currentFrame];
+            drawFrame(currentFrame);
+
+            // Controlar velocidade baseada no simulationSpeed
+            const speedFactor = simulationSpeed;
+            
+            // Incrementar o frame de forma mais suave para velocidades mais altas
+            if (speedFactor <= 1) {
+                currentFrame += 1;
+            } else {
+                currentFrame += Math.ceil(speedFactor);
+            }
+
+            // Ajustar o tempo entre frames com base na velocidade
+            const frameDelay = speedFactor <= 1 ? 50 / speedFactor : 50 / Math.sqrt(speedFactor);
+            setTimeout(() => {
+                if (simulationActive && !simulationPaused) {
+                    animationId = requestAnimationFrame(animateSimulation);
+                }
+            }, frameDelay);
+        }
+
+        // Função para iniciar/pausar a simulação
+        function toggleSimulation() {
+            if (!simulationFrames || simulationFrames.length === 0) {
+                showMessage("Nenhum código gerado para simular!", 'error');
+                return;
+            }
+
+            if (!simulationActive) {
+                simulationActive = true;
+                simulationPaused = false;
+                document.getElementById('btnSimular').textContent = 'Parar Simulação';
+                document.getElementById('btnPausar').disabled = false;
+                document.getElementById('btnReiniciar').disabled = false;
+                
+                // Garantir que as coordenadas iniciais sejam exibidas
+                const firstFrame = simulationFrames[0];
+                updatePositionIndicator(firstFrame.x || 0, firstFrame.y, firstFrame.z);
+                updateAngleIndicator(firstFrame.a);
+                
+                animationId = requestAnimationFrame(animateSimulation);
+            } else {
+                simulationActive = false;
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                document.getElementById('btnSimular').textContent = 'Iniciar Simulação';
+                document.getElementById('btnPausar').disabled = true;
+                
+                // Manter as coordenadas do frame atual visíveis
+                if (currentFrame < simulationFrames.length) {
+                    const frame = simulationFrames[currentFrame];
+                    updatePositionIndicator(frame.x || 0, frame.y, frame.z);
+                    updateAngleIndicator(frame.a);
+                }
+            }
+        }
+
+        // Função para pausar/continuar a simulação
+        function pauseResumeSimulation() {
+            if (!simulationActive) return;
+            
+            simulationPaused = !simulationPaused;
+            document.getElementById('btnPausar').textContent = simulationPaused ? 'Continuar' : 'Pausar';
+            
+            // Garantir que as coordenadas do frame atual permaneçam visíveis durante a pausa
+            if (simulationPaused && currentFrame < simulationFrames.length) {
+                const frame = simulationFrames[currentFrame];
+                updatePositionIndicator(frame.x || 0, frame.y, frame.z);
+                updateAngleIndicator(frame.a);
+            }
+            
+            if (!simulationPaused) {
+                animationId = requestAnimationFrame(animateSimulation);
+            }
+        }
+
+        // Função para reiniciar a simulação
+        function restartSimulation() {
+            currentFrame = 0;
+            if (!simulationActive) {
+                drawFrame(currentFrame);
+                // Garantir que as coordenadas do primeiro frame sejam exibidas
+                const firstFrame = simulationFrames[0];
+                updatePositionIndicator(firstFrame.x || 0, firstFrame.y, firstFrame.z);
+                updateAngleIndicator(firstFrame.a);
+            }
+        }
+
+        // Função para gerar o código G baseado nos parâmetros
+        function gerarCodigoG() {
+            try {
+                // Obter valores dos inputs
+                const pontoInicioZ = parseFloat(document.getElementById('pontoInicioZ').value);
+                const profundidadeFinal = parseFloat(document.getElementById('profundidadeFinal').value);
+                const numEntalhes = parseInt(document.getElementById('numEntalhes').value);
+                const avanco = parseFloat(document.getElementById('avanco').value);
+                const apY = parseFloat(document.getElementById('apY').value);
+                const diametroInicial = parseFloat(document.getElementById('diametroInicial').value);
+                const diametroFinal = parseFloat(document.getElementById('diametroFinal').value);
+                const diametroFerramenta = parseFloat(document.getElementById('diametroFerramenta').value);
+                const aberturaChaveta = parseFloat(document.getElementById('aberturaChaveta').value);
+                const ladoCorte = document.querySelector('input[name="ladoCorte"]:checked').value;
+
+                // Calcular raios e profundidade
+                const raioInicial = diametroInicial / 2;
+                const raioFinal = diametroFinal / 2;
+                const maxY = raioFinal - raioInicial;
+                const recuoY = raioInicial - 1; // Recuo 1mm menor que o raio inicial
+
+                // Validar valores
+                if (isNaN(pontoInicioZ) || isNaN(profundidadeFinal) || isNaN(numEntalhes) ||
+                    isNaN(avanco) || isNaN(apY) || isNaN(diametroInicial) || isNaN(diametroFinal) || 
+                    isNaN(diametroFerramenta) || isNaN(aberturaChaveta)) {
+                    showMessage('Por favor, preencha todos os campos com valores numéricos válidos.', 'error');
+                    return;
+                }
+
+                if (numEntalhes <= 0) {
+                    showMessage('O número de entalhes deve ser maior que zero.', 'error');
+                    return;
+                }
+
+                if (avanco <= 0) {
+                    showMessage('O avanço deve ser maior que zero.', 'error');
+                    return;
+                }
+
+                if (apY <= 0) {
+                    showMessage('O material por passe deve ser maior que zero.', 'error');
+                    return;
+                }
+
+                if (diametroFinal <= diametroInicial) {
+                    showMessage('O diâmetro final deve ser maior que o diâmetro inicial.', 'error');
+                    return;
+                }
+
+                if (diametroFerramenta <= 0) {
+                    showMessage('O diâmetro da ferramenta deve ser maior que zero.', 'error');
+                    return;
+                }
+
+                if (aberturaChaveta < 0) {
+                    showMessage('A abertura da chaveta não pode ser negativa.', 'error');
+                    return;
+                }
+
+                // Mostrar controle de velocidade
+                document.querySelector('.speed-control').style.display = 'flex';
+
+                // Ajustando o sinal do deslocamento em Y
+                const sinalY = ladoCorte === "positivo" ? 1 : -1;
+
+                // Calculando ângulo entre entalhes
+                const anguloPasso = 360 / numEntalhes;
+
+                // Calcular deslocamento em X necessário
+                let deslocamentoX = 0;
+                if (aberturaChaveta > diametroFerramenta) {
+                    deslocamentoX = (aberturaChaveta - diametroFerramenta) / 2;
+                }
+
+                // Lista para armazenar o código G
+                const codigoG = ["G0 Z100", "G0 Y0", "G0 X0"];  // Movimentos iniciais de segurança
+
+                // Loop para cada entalhe
+                for (let ii = 0; ii < numEntalhes; ii++) {
+                    codigoG.push(`G0 A${(anguloPasso * ii).toFixed(2)}`); // Rotação angular do entalhe
+                    codigoG.push(`G0 Z${pontoInicioZ}`); // Posicionamento inicial em Z
+                    codigoG.push(`G0 Y${raioInicial}`); // Posicionamento inicial em Y (raio inicial)
+                    codigoG.push("G0 X0"); // Garantindo posição inicial em X
+
+                    let yAtual = raioInicial; // Iniciando Y no raio inicial
+
+                    while (true) {
+                        // Se houver deslocamento em X necessário, calcular passes
+                        if (deslocamentoX > 0) {
+                            // Primeiro passe no lado positivo de X
+                            codigoG.push(`G0 X${deslocamentoX.toFixed(3)}`);
+                            codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                            // Primeiro recuar para Y antes de subir Z (correção solicitada)
+                            codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                            codigoG.push(`G0 Z${pontoInicioZ}`);
+                            
+                            // Voltar para a posição Y de corte
+                            codigoG.push(`G0 Y${yAtual.toFixed(3)}`);
+                            
+                            // Segundo passe no lado negativo de X
+                            codigoG.push(`G0 X${(-deslocamentoX).toFixed(3)}`);
+                            codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                            
+                            // Recuar para Y antes de subir Z (correção solicitada)
+                            codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                            codigoG.push(`G0 Z${pontoInicioZ}`);
+                            codigoG.push("G0 X0");
+                        } else {
+                            // Corte normal sem deslocamento em X
+                            codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                            // Recuar para Y antes de subir Z (correção solicitada)
+                            codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                            codigoG.push(`G0 Z${pontoInicioZ}`);
+                        }
+
+                        // Calcula a próxima posição em Y
+                        const nextY = parseFloat((yAtual + apY).toFixed(3));
+
+                        if (nextY < raioFinal) {
+                            // Ainda há espaço para mais um avanço normal
+                            codigoG.push(`G0 Y${nextY.toFixed(3)}`); // Move para o próximo Y
+                            yAtual = nextY;
+                        } else if (nextY === raioFinal) {
+                            // O próximo avanço atinge exatamente o valor máximo
+                            codigoG.push(`G0 Y${raioFinal.toFixed(3)}`);
+                            // Executa o corte final
+                            
+                            // Se houver deslocamento em X necessário, fazer passes
+                            if (deslocamentoX > 0) {
+                                codigoG.push(`G0 X${deslocamentoX.toFixed(3)}`);
+                                codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                // Recuar para Y antes de subir Z (correção solicitada)
+                                codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                                codigoG.push(`G0 Z${pontoInicioZ}`);
+                                
+                                // Voltar para a posição Y de corte
+                                codigoG.push(`G0 Y${raioFinal.toFixed(3)}`);
+                                
+                                codigoG.push(`G0 X${(-deslocamentoX).toFixed(3)}`);
+                                codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                // Recuar para Y antes de subir Z (correção solicitada)
+                                codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                            } else {
+                                codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                // Recuar para Y antes de subir Z (correção solicitada)
+                                codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                            }
+                            
+                            codigoG.push(`G0 Z${pontoInicioZ}`);
+                            break;
+                        } else {
+                            // Se o próximo avanço ultrapassa raioFinal e yAtual ainda não está em raioFinal,
+                            // força a última passagem exatamente em raioFinal
+                            if (yAtual !== raioFinal) {
+                                codigoG.push(`G0 Y${raioFinal.toFixed(3)}`);
+                                
+                                // Se houver deslocamento em X necessário, fazer passes
+                                if (deslocamentoX > 0) {
+                                    codigoG.push(`G0 X${deslocamentoX.toFixed(3)}`);
+                                    codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                    // Recuar para Y antes de subir Z (correção solicitada)
+                                    codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                                    codigoG.push(`G0 Z${pontoInicioZ}`);
+                                    
+                                    // Voltar para a posição Y de corte
+                                    codigoG.push(`G0 Y${raioFinal.toFixed(3)}`);
+                                    
+                                    codigoG.push(`G0 X${(-deslocamentoX).toFixed(3)}`);
+                                    codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                    // Recuar para Y antes de subir Z (correção solicitada)
+                                    codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                                } else {
+                                    codigoG.push(`G1 Z${profundidadeFinal} F${avanco}`);
+                                    // Recuar para Y antes de subir Z (correção solicitada)
+                                    codigoG.push(`G0 Y${recuoY.toFixed(2)}`);
+                                }
+                                
+                                codigoG.push(`G0 Z${pontoInicioZ}`);
+                            }
+                            break;
+                        }
+                    }
+                }
+
+                // Finalização do código G
+                codigoG.push("G0 Z100"); // Movimento de segurança
+                codigoG.push("M30"); // Fim do programa
+
+                // Exibir o código gerado
+                const outputElement = document.getElementById('codigoGOutput');
+                outputElement.innerHTML = codigoG.join('<br>');
+
+                // Armazenar o código gerado
+                codigoGGerado = codigoG;
+
+                // Processar os comandos e criar os estados para a simulação
+                processarSimulacao(codigoG);
+
+                // Habilitar botões
+                document.getElementById('btnSimular').disabled = false;
+                document.getElementById('btnSalvar').disabled = false;
+
+                showMessage('Código G gerado com sucesso!', 'success');
+                return codigoG;
+            } catch (error) {
+                showMessage(`Erro ao gerar código G: ${error.message}`, 'error');
+                return [];
+            }
+        }
+
+        // Função para processar a simulação
+        function processarSimulacao(codigoG) {
+            document.getElementById('loadingIndicator').style.display = 'block';
+            showMessage('Preparando simulação...', 'info');
+
+            // Processar em um timeout para permitir que a UI atualize
+            setTimeout(() => {
+                try {
+                    // Função para extrair valores dos comandos G
+                    function parseCommand(cmd, state) {
+                        const pattern = /([XYZAF])([-+]?[0-9]*\.?[0-9]+)/g;
+                        let match;
+                        while ((match = pattern.exec(cmd)) !== null) {
+                            const [_, axis, value] = match;
+                            state[axis.toLowerCase()] = parseFloat(value);
+                        }
+                        return {...state};
+                    }
+
+                    // Processa os comandos e cria os estados para a simulação
+                    simulationFrames = [];
+                    let currentState = { x: 0.0, y: 0.0, z: 0.0, a: 0.0, cmd: 'G0' };
+
+                    for (const cmd of codigoG) {
+                        const cmdTrim = cmd.trim();
+                        if (!cmdTrim) continue;
+
+                        if (cmdTrim.startsWith("G0") || cmdTrim.startsWith("G1")) {
+                            const commandType = cmdTrim.split(" ")[0];
+                            const newState = parseCommand(cmdTrim, {...currentState, cmd: commandType});
+                            simulationFrames.push(newState);
+                            currentState = {...newState};
+                        }
+                    }
+
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    showMessage('Simulação pronta! Clique em Iniciar Simulação para visualizar.', 'success');
+                    
+                    // Desenhar o primeiro frame
+                    drawFrame(0);
+
+                } catch (error) {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    showMessage(`Erro ao preparar simulação: ${error.message}`, 'error');
+                }
+            }, 100);
+        }
+
+        // Função para salvar o código G
+        function salvarCodigoG() {
+            if (!codigoGGerado || codigoGGerado.length === 0) {
+                showMessage("Nenhum código gerado para salvar!", 'error');
+                return;
+            }
+
+            const codigoTexto = codigoGGerado.join("\n");
+            const blob = new Blob([codigoTexto], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "codigo_entalhy_cnc.nc";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showMessage('Código G salvo com sucesso!', 'success');
+        }
+
+        // Função para exibir mensagens
+        function showMessage(message, type = 'info') {
+            const container = document.getElementById('messageContainer');
+            container.textContent = message;
+            container.className = `message ${type}`;
+            container.style.display = 'block';
+
+            // Oculta a mensagem após alguns segundos
+            setTimeout(() => {
+                container.style.display = 'none';
+            }, 5000);
+        }
+
+        // Função para atualizar o deslocamento necessário
+        function updateDeslocamento() {
+            const aberturaChaveta = parseFloat(document.getElementById('aberturaChaveta').value);
+            const diametroFerramenta = parseFloat(document.getElementById('diametroFerramenta').value);
+            const deslocamentoDescription = document.getElementById('deslocamentoDescription');
+            
+            // Calcular e mostrar o deslocamento necessário
+            let deslocamento = 0;
+            let numPasses = 1;
+            
+            if (aberturaChaveta > diametroFerramenta) {
+                deslocamento = (aberturaChaveta - diametroFerramenta) / 2;
+                numPasses = 2;
+            }
+            
+            deslocamentoDescription.textContent = `Deslocamento necessário: ${deslocamento > 0 ? '±' + deslocamento.toFixed(1) + 'mm' : 'Nenhum'} (${numPasses} ${numPasses === 1 ? 'passe' : 'passes'})`;
+        }
+
+        // Função para atualizar os raios e profundidade calculada
+        function updateRaiosEProfundidade() {
+            const diametroInicial = parseFloat(document.getElementById('diametroInicial').value);
+            const diametroFinal = parseFloat(document.getElementById('diametroFinal').value);
+            
+            if (!isNaN(diametroInicial) && !isNaN(diametroFinal) && diametroFinal > diametroInicial) {
+                const raioInicial = diametroInicial / 2;
+                const raioFinal = diametroFinal / 2;
+                const profundidade = raioFinal - raioInicial;
+                
+                document.getElementById('raioInicial').textContent = raioInicial.toFixed(1);
+                document.getElementById('raioFinal').textContent = raioFinal.toFixed(1);
+                document.getElementById('profundidadeCalculada').textContent = profundidade.toFixed(1);
+            } else {
+                document.getElementById('raioInicial').textContent = "Erro";
+                document.getElementById('raioFinal').textContent = "Erro";
+                document.getElementById('profundidadeCalculada').textContent = "Erro";
+            }
+        }
+
+        
+// Controle de abas colapsáveis
+document.querySelectorAll(".collapsible-header").forEach(header => {
+    header.addEventListener("click", () => {
+        const body = header.nextElementSibling;
+        body.style.display = body.style.display === "block" ? "none" : "block";
+    });
+});
+
+
+// Event listeners
+        document.getElementById('btnGerar').addEventListener('click', gerarCodigoG);
+        document.getElementById('btnSimular').addEventListener('click', function() {
+            // Garantir que os indicadores estão visíveis antes de iniciar a simulação
+            document.getElementById('positionIndicator').style.display = 'block';
+            document.getElementById('positionIndicator').style.zIndex = '9999';
+            document.getElementById('angleIndicator').style.display = 'block';
+            document.getElementById('angleIndicator').style.zIndex = '9999';
+            
+            toggleSimulation();
+        });
+        document.getElementById('btnPausar').addEventListener('click', pauseResumeSimulation);
+        document.getElementById('btnReiniciar').addEventListener('click', restartSimulation);
+        document.getElementById('btnSalvar').addEventListener('click', salvarCodigoG);
+
+        // Controle de velocidade da simulação
+        document.getElementById('simulationSpeed').addEventListener('input', function() {
+            simulationSpeed = parseFloat(this.value);
+            document.getElementById('speedValue').textContent = simulationSpeed.toFixed(1) + 'x';
+        });
+
+        // Atualizar quando o diâmetro da ferramenta ou abertura da chaveta muda
+        document.getElementById('diametroFerramenta').addEventListener('input', updateDeslocamento);
+        document.getElementById('aberturaChaveta').addEventListener('input', updateDeslocamento);
+
+        // Atualizar raios e profundidade calculada quando os diâmetros mudam
+        document.getElementById('diametroInicial').addEventListener('input', updateRaiosEProfundidade);
+        document.getElementById('diametroFinal').addEventListener('input', updateRaiosEProfundidade);
+
+        // Controle do painel de ajuda
+        document.getElementById('btnHelp').addEventListener('click', function() {
+            document.getElementById('helpPanel').style.display = 'flex';
+        });
+
+        document.getElementById('helpClose').addEventListener('click', function() {
+            document.getElementById('helpPanel').style.display = 'none';
+        });
+
+        // Controle do modo escuro
+        document.getElementById('darkModeToggle').addEventListener('click', function() {
+            document.body.classList.toggle('dark');
+            this.querySelector('.dark-mode-icon').textContent = document.body.classList.contains('dark') ? '🌙' : '☀️';
+        });
+
+        
+// Controle de abas colapsáveis
+document.querySelectorAll(".collapsible-header").forEach(header => {
+    header.addEventListener("click", () => {
+        const body = header.nextElementSibling;
+        body.style.display = body.style.display === "block" ? "none" : "block";
+    });
+});
+
+
+// Event listeners para zoom
+        document.getElementById('zoomIn').addEventListener('click', function() {
+            const newZoom = Math.min(4, zoomLevel + 0.1);
+            document.getElementById('zoomLevel').value = newZoom;
+            applyZoom(newZoom);
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', function() {
+            const newZoom = Math.max(0.5, zoomLevel - 0.1);
+            document.getElementById('zoomLevel').value = newZoom;
+            applyZoom(newZoom);
+        });
+
+        document.getElementById('zoomLevel').addEventListener('input', function() {
+            applyZoom(parseFloat(this.value));
+        });
+
+        // Configurar o panning do canvas
+        setupCanvasPanning();
+
+        // Inicializar o canvas vazio
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+        drawEmptyCanvas();
+        updateDeslocamento();
+        updateRaiosEProfundidade();
+
+        // Função para inicializar a visualização 3D
+        function init3DVisualization() {
+            const container = document.getElementById('threeDContainer');
+            
+            // Criar cena
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f0f0);
+
+            // Configurar câmera
+            const aspect = container.clientWidth / container.clientHeight;
+            camera = new THREE.PerspectiveCamera(75, aspect, 0.1, 1000);
+            camera.position.set(50, 100, 100);
+            camera.lookAt(0, 0, 0);
+
+            // Configurar renderer
+            renderer = new THREE.WebGLRenderer({ 
+                antialias: true
+            });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            container.innerHTML = '';
+            container.appendChild(renderer.domElement);
+
+            // Adicionar luz
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+            scene.add(ambientLight);
+
+            // Criar eixos - torná-los mais visíveis
+            const axesHelper = new THREE.AxesHelper(100);
+            scene.add(axesHelper);
+
+            // Adicionar grid no plano XZ (representa Y e Z no código G)
+            const gridHelper = new THREE.GridHelper(200, 20, 0x888888, 0x444444);
+            scene.add(gridHelper);
+
+            // Adicionar controles de órbita
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.screenSpacePanning = true;
+
+            // Criar as linhas de trajetória se houver dados
+            if (simulationFrames && simulationFrames.length > 0) {
+                createTrajectoryLines();
+            }
+
+            // Iniciar animação
+            animate();
+            
+            // Mostrar mensagem de sucesso
+            showMessage('Visualização 3D inicializada com sucesso!', 'success');
+        }
+
+        // Função corrigida para criar as linhas de trajetória
+        function createTrajectoryLines() {
+            if (!simulationFrames || !scene) return;
+
+            // Remover linhas antigas
+            scene.children.forEach(child => {
+                if (child.isLine) {
+                    scene.remove(child);
+                }
+            });
+
+            // Separar pontos por tipo de comando
+            let g0Points = [];
+            let g1Points = [];
+            let lastCmd = null;
+            
+            // Agrupar pontos por tipo de comando
+            simulationFrames.forEach(frame => {
+                // Criar um vetor 3D com as coordenadas (note que Y e Z estão trocados para visualização correta)
+                const point = new THREE.Vector3(frame.x || 0, frame.z, frame.y);
+                
+                if (frame.cmd === 'G0') {
+                    g0Points.push(point);
+                } else if (frame.cmd === 'G1') {
+                    g1Points.push(point);
+                }
+            });
+
+            // Criar linhas para G0 (movimento rápido)
+            if (g0Points.length > 1) {
+                const g0Material = new THREE.LineBasicMaterial({ color: 0x0066cc, linewidth: 2 });
+                const g0Geometry = new THREE.BufferGeometry().setFromPoints(g0Points);
+                const g0Line = new THREE.Line(g0Geometry, g0Material);
+                g0Line.isLine = true;
+                scene.add(g0Line);
+            }
+
+            // Criar linhas para G1 (corte)
+            if (g1Points.length > 1) {
+                const g1Material = new THREE.LineBasicMaterial({ color: 0xcc0000, linewidth: 3 });
+                const g1Geometry = new THREE.BufferGeometry().setFromPoints(g1Points);
+                const g1Line = new THREE.Line(g1Geometry, g1Material);
+                g1Line.isLine = true;
+                scene.add(g1Line);
+            }
+        }
+
+        // Modificar a função toggle2D3D
+        function toggle2D3D() {
+            isThreeDMode = !isThreeDMode;
+            
+            const canvas2D = document.getElementById('visualizationCanvas');
+            const container3D = document.getElementById('threeDContainer');
+            
+            // Salvar o estado atual das coordenadas
+            const currentCoordinates = {
+                x: document.getElementById('positionIndicator').textContent,
+                angle: document.getElementById('angleValue').textContent
+            };
+            
+            canvas2D.style.display = isThreeDMode ? 'none' : 'block';
+            container3D.style.display = isThreeDMode ? 'block' : 'none';
+            
+            if (isThreeDMode) {
+                try {
+                    if (!renderer) {
+                        init3DVisualization();
+                    } else if (simulationFrames && simulationFrames.length > 0) {
+                        createTrajectoryLines();
+                    }
+                } catch (error) {
+                    console.error("Erro ao inicializar visualização 3D:", error);
+                    showMessage(`Erro ao inicializar visualização 3D: ${error.message}`, 'error');
+                    isThreeDMode = false;
+                    canvas2D.style.display = 'block';
+                    container3D.style.display = 'none';
+                }
+            }
+            
+            // Restaurar as coordenadas após a troca de modo
+            if (currentFrame) {
+                updatePositionIndicator(currentFrame.x || 0, currentFrame.y, currentFrame.z);
+                updateAngleIndicator(currentFrame.a);
+            }
+        }
+
+        // Adicionar event listener para o botão de alternância
+        document.getElementById('toggle2D3D').addEventListener('click', toggle2D3D);
+
+        // Adicionar esta função junto com as outras funções
+        function onWindowResize() {
+            if (!isThreeDMode) return;
+            
+            const container = document.getElementById('threeDContainer');
+            const width = container.clientWidth;
+            const height = container.clientHeight;
+            
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+            renderer.setSize(width, height);
+        }
+
+        // Adicionar o listener de redimensionamento
+        window.addEventListener('resize', onWindowResize);
+
+        // Função de animação corrigida
+        function animate() {
+            if (!isThreeDMode) return;
+            
+            requestAnimationFrame(animate);
+            
+            // Garantir que controls exista antes de atualizar
+            if (controls) {
+                controls.update();
+            }
+            
+            // Garantir que todos os componentes existem antes de renderizar
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
+        }
+
+        // Adicionar um observador de mutação para garantir que os indicadores permaneçam visíveis
+        document.addEventListener('DOMContentLoaded', function() {
+            // Executar imediatamente após o carregamento da página
+            ensureIndicatorsVisibility();
+            
+            // Configurar observador para monitorar alterações no DOM
+            const observer = new MutationObserver(function(mutations) {
+                ensureIndicatorsVisibility();
+            });
+            
+            // Observar todo o documento para alterações
+            observer.observe(document.body, { 
+                childList: true,
+                subtree: true,
+                attributes: true
+            });
+            
+            // Função para garantir que os indicadores estejam visíveis
+            function ensureIndicatorsVisibility() {
+                const positionIndicator = document.getElementById('positionIndicator');
+                const angleIndicator = document.getElementById('angleIndicator');
+                
+                if (positionIndicator) {
+                    positionIndicator.style.display = 'block';
+                    positionIndicator.style.visibility = 'visible';
+                    positionIndicator.style.opacity = '1';
+                    positionIndicator.style.zIndex = '9999';
+                }
+                
+                if (angleIndicator) {
+                    angleIndicator.style.display = 'block';
+                    angleIndicator.style.visibility = 'visible';
+                    angleIndicator.style.opacity = '1';
+                    angleIndicator.style.zIndex = '9999';
+                }
+            }
+            
+            // Adicionar verificação periódica
+            setInterval(ensureIndicatorsVisibility, 1000);
+        });
+
+        // Função específica para mostrar os indicadores de coordenadas
+        function forceShowIndicators() {
+            const pos = document.getElementById('positionIndicator');
+            const ang = document.getElementById('angleIndicator');
+            
+            if (pos) {
+                pos.style.display = 'block';
+                pos.style.visibility = 'visible';
+                pos.style.opacity = '1';
+                pos.style.zIndex = '9999';
+            }
+            
+            if (ang) {
+                ang.style.display = 'block';
+                ang.style.visibility = 'visible';
+                ang.style.opacity = '1';
+                ang.style.zIndex = '9999';
+            }
+        }
+
+        // Criar um timer que verifica constantemente durante a simulação
+        setInterval(function() {
+            if (simulationActive) {
+                forceShowIndicators();
+            }
+        }, 100);
+
+        // Monitorar mudanças no contêiner da visualização
+        const canvasContainer = document.getElementById('canvasContainer');
+        if (canvasContainer) {
+            canvasContainer.addEventListener('DOMSubtreeModified', forceShowIndicators);
+        }
+    </script>
+</body>
+</html>
