@@ -2,9 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ENTALHY CNC - Gerador de Código G</title>
     <style>
         :root {
@@ -662,31 +660,7 @@ body.dark .collapsible-body {
     box-shadow: 0 0 8px rgba(0, 0, 0, 0.3) !important;
 }
 
-@media (max-width: 768px) {
-    .main-content {
-        flex-direction: column;
-    }
-    
-    .input-panel,
-    .output-panel {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-    
-    .btn-group {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .btn {
-        width: 100%;
-    }
-    
-    .canvas-container {
-        height: 300px;
-    }
-}
-    </style>
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 </head>
@@ -1275,63 +1249,52 @@ body.dark .collapsible-body {
         function setupCanvasPanning() {
             const canvasContainer = document.getElementById('canvasContainer');
             
-            // Eventos de mouse existentes
-            canvasContainer.addEventListener('mousedown', handleStart);
-            document.addEventListener('mousemove', handleMove);
-            document.addEventListener('mouseup', handleEnd);
-            
-            // Adicionar eventos touch
-            canvasContainer.addEventListener('touchstart', handleStart);
-            document.addEventListener('touchmove', handleMove);
-            document.addEventListener('touchend', handleEnd);
-            
-            function handleStart(e) {
+            canvasContainer.addEventListener('mousedown', function(e) {
                 if (e.target === canvas) {
                     isDragging = true;
-                    lastMouseX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                    lastMouseY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
                     canvasContainer.style.cursor = 'grabbing';
                 }
-                
-                // Prevenir zoom do navegador em dispositivos móveis
-                if (e.type.includes('touch')) {
-                    e.preventDefault();
-                }
-            }
+            });
             
-            function handleMove(e) {
-                if (!isDragging) return;
-                
-                const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-                
-                const deltaX = clientX - lastMouseX;
-                const deltaY = clientY - lastMouseY;
-                
-                panOffsetX += deltaX;
-                panOffsetY += deltaY;
-                
-                lastMouseX = clientX;
-                lastMouseY = clientY;
-                
-                if (simulationActive && simulationFrames.length > 0) {
-                    drawFrame(currentFrame);
-                } else {
-                    drawEmptyCanvas();
+            document.addEventListener('mousemove', function(e) {
+                if (isDragging) {
+                    const deltaX = e.clientX - lastMouseX;
+                    const deltaY = e.clientY - lastMouseY;
+                    
+                    panOffsetX += deltaX;
+                    panOffsetY += deltaY;
+                    
+                    lastMouseX = e.clientX;
+                    lastMouseY = e.clientY;
+                    
+                    if (simulationActive && simulationFrames.length > 0) {
+                        drawFrame(currentFrame);
+                    } else {
+                        drawEmptyCanvas();
+                    }
                 }
-                
-                // Prevenir comportamento padrão em dispositivos móveis
-                if (e.type.includes('touch')) {
-                    e.preventDefault();
-                }
-            }
+            });
             
-            function handleEnd() {
+            document.addEventListener('mouseup', function() {
                 if (isDragging) {
                     isDragging = false;
                     canvasContainer.style.cursor = 'default';
                 }
-            }
+            });
+            
+            // Adicionar suporte para zoom com a roda do mouse
+            canvasContainer.addEventListener('wheel', function(e) {
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                const newZoom = Math.max(0.5, Math.min(4, zoomLevel + delta));
+                
+                // Ajustar o controle deslizante de zoom
+                document.getElementById('zoomLevel').value = newZoom;
+                
+                applyZoom(newZoom);
+            });
         }
 
         // Função para animar a simulação
